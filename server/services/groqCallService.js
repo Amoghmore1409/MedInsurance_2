@@ -16,7 +16,7 @@ const groq = new Groq({
 
 // Load data files
 const loadJSON = (filename) => {
-  const filepath = path.join(__dirname, '../../src/data', filename);
+  const filepath = path.join(__dirname, '../data', filename);
   return JSON.parse(fs.readFileSync(filepath, 'utf-8'));
 };
 
