@@ -1,12 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import voiceRouter from './routes/voice.js';
 import gatherRouter from './routes/gather.js';
 import callRouter from './routes/call.js';
 
 // Load environment variables
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +20,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Request logging
 app.use((req, res, next) => {
@@ -36,12 +44,18 @@ app.use('/voice', voiceRouter);
 app.use('/voice/gather', gatherRouter);
 app.use('/call', callRouter);
 
-// 404 handler
+// 404 handler - serve index.html for SPA routing
 app.use((req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    path: req.path
-  });
+  // If it's an API route, return 404
+  if (req.path.startsWith('/api') || req.path.startsWith('/voice') || req.path.startsWith('/call')) {
+    res.status(404).json({
+      error: 'Route not found',
+      path: req.path
+    });
+  } else {
+    // Otherwise serve index.html for client-side routing
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+  }
 });
 
 // Error handler
