@@ -6,6 +6,8 @@ export const CallMode = ({ selectedPatient }) => {
   const [transcript, setTranscript] = useState([]);
   const [twilioNumber, setTwilioNumber] = useState('');
   const [userPhoneNumber, setUserPhoneNumber] = useState('+919326479441'); // Your number
+  const [phoneInput, setPhoneInput] = useState('+919326479441'); // Temporary input
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
   const timerRef = useRef(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
@@ -58,8 +60,8 @@ export const CallMode = ({ selectedPatient }) => {
     // Use the stored phone number
     const phoneNumber = userPhoneNumber;
 
-    if (!phoneNumber) {
-      alert('Phone number is required to initiate call');
+    if (!phoneNumber || phoneNumber.length < 10) {
+      alert('Please enter a valid phone number to initiate call');
       return;
     }
 
@@ -89,8 +91,8 @@ export const CallMode = ({ selectedPatient }) => {
         // Simulate call connection (in production, this would be handled by Twilio webhooks)
         setTimeout(() => {
           setCallStatus('connected');
-          addTranscriptEntry('system', 'Call connected');
-          addTranscriptEntry('ai', 'Hello! I am MedInsure AI assistant. How can I help you today?');
+          addTranscriptEntry('system', `Call connected to ${phoneNumber}`);
+          addTranscriptEntry('ai', 'Congratulations! 🎉 You have successfully purchased a policy from Tata AIA Life Insurance. A medical check-up is required. Please choose your preferred option: Say 1 for Home Visit or 2 for Diagnostic Center Visit.');
         }, 2000);
       } else {
         setCallStatus('idle');
@@ -100,6 +102,19 @@ export const CallMode = ({ selectedPatient }) => {
       console.error('Error initiating call:', error);
       setCallStatus('idle');
       alert('Failed to initiate call. Make sure the backend server is running.');
+    }
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    setPhoneInput(e.target.value);
+  };
+
+  const handleSavePhoneNumber = () => {
+    if (phoneInput && phoneInput.length >= 10) {
+      setUserPhoneNumber(phoneInput);
+      setShowPhoneInput(false);
+    } else {
+      alert('Please enter a valid phone number');
     }
   };
 
@@ -152,8 +167,51 @@ export const CallMode = ({ selectedPatient }) => {
             <div className="text-sm text-gray-600">
               {selectedPatient.policyId} • {selectedPatient.plan}
             </div>
-            <div className="text-xs text-gray-500 mt-1">
-              Phone: {userPhoneNumber}
+
+            {/* Phone Number Section */}
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              {!showPhoneInput ? (
+                <div>
+                  <div className="text-xs text-gray-500">Your Phone Number:</div>
+                  <div className="text-lg font-mono font-bold text-blue-600 mt-1">{userPhoneNumber}</div>
+                  <button
+                    onClick={() => {
+                      setPhoneInput(userPhoneNumber);
+                      setShowPhoneInput(true);
+                    }}
+                    className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Change Number
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="tel"
+                    value={phoneInput}
+                    onChange={handlePhoneNumberChange}
+                    placeholder="Enter phone number (with country code)"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSavePhoneNumber}
+                      className="flex-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowPhoneInput(false);
+                        setPhoneInput(userPhoneNumber);
+                      }}
+                      className="flex-1 px-2 py-1 bg-gray-400 hover:bg-gray-500 text-white text-sm rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

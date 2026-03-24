@@ -5,7 +5,21 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true
+    open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3003',
+        changeOrigin: true
+      },
+      '/voice': {
+        target: 'http://localhost:3003',
+        changeOrigin: true
+      },
+      '/call': {
+        target: 'http://localhost:3003',
+        changeOrigin: true
+      }
+    }
   },
   build: {
     outDir: 'dist',

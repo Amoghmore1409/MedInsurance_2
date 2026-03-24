@@ -5,16 +5,29 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import voiceRouter from './routes/voice.js';
 import gatherRouter from './routes/gather.js';
-import callRouter from './routes/call.js';
+import callRouter, { initializeTwilio } from './routes/call.js';
+import bookingRouter from './routes/booking.js';
 
 // Load environment variables
-dotenv.config();
+const envResult = dotenv.config();
+if (envResult.error) {
+  console.log('⚠️ .env file error:', envResult.error);
+} else {
+  console.log('✅ .env file loaded successfully');
+}
+console.log('🔐 Environment Check:');
+console.log('   TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'SET ✅' : 'NOT SET ❌');
+console.log('   TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'SET ✅' : 'NOT SET ❌');
+console.log('   TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'NOT SET ❌');
+
+// Initialize Twilio AFTER env vars are loaded
+const twilioReady = initializeTwilio();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(cors());
@@ -41,6 +54,7 @@ app.get('/health', (req, res) => {
 app.use('/voice', voiceRouter);
 app.use('/voice/gather', gatherRouter);
 app.use('/call', callRouter);
+app.use('/api/booking', bookingRouter);
 
 // 404 handler
 app.use((req, res) => {

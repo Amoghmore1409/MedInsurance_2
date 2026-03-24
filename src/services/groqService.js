@@ -1,5 +1,4 @@
 import Groq from 'groq-sdk';
-import appointmentSlots from '../data/appointment-slots.json';
 import claimsStatus from '../data/claims-status.json';
 import claimsHistory from '../data/claims-history.json';
 import payments from '../data/payments.json';
@@ -10,65 +9,8 @@ const groq = new Groq({
   dangerouslyAllowBrowser: true
 });
 
-// Function definitions for Groq
+// Function definitions for Groq - REMOVED APPOINTMENT FUNCTIONS
 const functions = [
-  {
-    name: 'get_appointment_slots',
-    description: 'Get available appointment slots with doctors. Can filter by date or specialty.',
-    parameters: {
-      type: 'object',
-      properties: {
-        date: {
-          type: 'string',
-          description: 'Filter by specific date (YYYY-MM-DD format)'
-        },
-        specialty: {
-          type: 'string',
-          description: 'Filter by doctor specialty (e.g., Cardiologist, General Physician)'
-        }
-      }
-    }
-  },
-  {
-    name: 'book_appointment',
-    description: 'Book an appointment slot for a patient',
-    parameters: {
-      type: 'object',
-      properties: {
-        slotId: {
-          type: 'string',
-          description: 'The ID of the appointment slot to book'
-        },
-        patientName: {
-          type: 'string',
-          description: 'Name of the patient'
-        },
-        policyId: {
-          type: 'string',
-          description: 'Patient policy ID'
-        },
-        reason: {
-          type: 'string',
-          description: 'Reason for the appointment'
-        }
-      },
-      required: ['slotId', 'patientName', 'policyId', 'reason']
-    }
-  },
-  {
-    name: 'cancel_appointment',
-    description: 'Cancel a previously booked appointment',
-    parameters: {
-      type: 'object',
-      properties: {
-        bookingId: {
-          type: 'string',
-          description: 'The booking ID to cancel'
-        }
-      },
-      required: ['bookingId']
-    }
-  },
   {
     name: 'get_claim_status',
     description: 'Get the current status of insurance claims for a patient',
@@ -149,97 +91,8 @@ const functions = [
   }
 ];
 
-// Function implementations
+// Function implementations - REMOVED APPOINTMENT FUNCTIONS
 const functionHandlers = {
-  get_appointment_slots: ({ date, specialty }) => {
-    let slots = appointmentSlots.slots.filter(slot => slot.available);
-
-    if (date) {
-      slots = slots.filter(slot => slot.date === date);
-    }
-
-    if (specialty) {
-      slots = slots.filter(slot =>
-        slot.specialty.toLowerCase().includes(specialty.toLowerCase())
-      );
-    }
-
-    return {
-      success: true,
-      slots: slots,
-      count: slots.length
-    };
-  },
-
-  book_appointment: ({ slotId, patientName, policyId, reason }) => {
-    const slotIndex = appointmentSlots.slots.findIndex(s => s.id === slotId);
-
-    if (slotIndex === -1) {
-      return {
-        success: false,
-        error: 'Appointment slot not found'
-      };
-    }
-
-    const slot = appointmentSlots.slots[slotIndex];
-
-    if (!slot.available) {
-      return {
-        success: false,
-        error: 'Appointment slot is no longer available'
-      };
-    }
-
-    const bookingId = `BOOK-${Date.now()}`;
-    const booking = {
-      bookingId,
-      slotId,
-      patientName,
-      policyId,
-      reason,
-      date: slot.date,
-      time: slot.time,
-      doctor: slot.doctor,
-      specialty: slot.specialty,
-      status: 'confirmed',
-      bookedAt: new Date().toISOString()
-    };
-
-    appointmentSlots.slots[slotIndex].available = false;
-    appointmentSlots.bookings.push(booking);
-
-    return {
-      success: true,
-      booking,
-      message: `Appointment booked successfully with ${slot.doctor} on ${slot.date} at ${slot.time}`
-    };
-  },
-
-  cancel_appointment: ({ bookingId }) => {
-    const bookingIndex = appointmentSlots.bookings.findIndex(b => b.bookingId === bookingId);
-
-    if (bookingIndex === -1) {
-      return {
-        success: false,
-        error: 'Booking not found'
-      };
-    }
-
-    const booking = appointmentSlots.bookings[bookingIndex];
-    const slotIndex = appointmentSlots.slots.findIndex(s => s.id === booking.slotId);
-
-    if (slotIndex !== -1) {
-      appointmentSlots.slots[slotIndex].available = true;
-    }
-
-    appointmentSlots.bookings[bookingIndex].status = 'cancelled';
-
-    return {
-      success: true,
-      message: `Appointment with ${booking.doctor} on ${booking.date} at ${booking.time} has been cancelled`
-    };
-  },
-
   get_claim_status: ({ policyId, claimId }) => {
     const claims = claimsStatus.claims[policyId] || [];
 
@@ -371,13 +224,14 @@ export const sendMessage = async (messages, patientContext = null) => {
     const systemMessage = {
       role: 'system',
       content: `You are MedInsure AI, a helpful health insurance assistant for MedInsure India. You help patients with:
-- Booking and managing appointments
 - Checking claim status and history
 - Viewing payment information
 - Generating invoices
 - Answering insurance-related questions
 
-Be professional, empathetic, and concise. Always use the available functions when users ask about appointments, claims, payments, or have questions.
+For appointment booking, politely direct users to use the dedicated "Appointment Booking" feature by clicking the 📅 "Appointment" tab or "🎤 Voice Booking" tab at the top of the application.
+
+Be professional, empathetic, and concise. Always use the available functions when users ask about claims, payments, or have questions.
 
 ${patientContext ? `Current patient context:
 - Name: ${patientContext.name}

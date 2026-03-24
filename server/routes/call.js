@@ -6,15 +6,24 @@ const router = express.Router();
 // Twilio client (configured with credentials from env)
 let twilioClient = null;
 
-try {
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    twilioClient = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
+// Function to initialize Twilio (called from index.js after dotenv.config())
+export function initializeTwilio() {
+  try {
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      twilioClient = twilio(
+        process.env.TWILIO_ACCOUNT_SID,
+        process.env.TWILIO_AUTH_TOKEN
+      );
+      console.log('✅ Twilio client initialized successfully');
+      return true;
+    } else {
+      console.log('❌ Twilio credentials not found in environment variables');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error initializing Twilio client:', error.message);
+    return false;
   }
-} catch (error) {
-  console.error('Error initializing Twilio client:', error);
 }
 
 // Get Twilio phone number
@@ -26,6 +35,14 @@ router.get('/number', (req, res) => {
 // Initiate outbound call
 router.post('/initiate', async (req, res) => {
   const { to, patient } = req.body;
+
+  console.log('📞 /call/initiate endpoint called');
+  console.log('   twilioClient status:', twilioClient ? 'INITIALIZED ✅' : 'NULL ❌');
+  console.log('   Credentials check:', {
+    SID: process.env.TWILIO_ACCOUNT_SID ? 'SET' : 'NOT SET',
+    TOKEN: process.env.TWILIO_AUTH_TOKEN ? 'SET' : 'NOT SET',
+    PHONE: process.env.TWILIO_PHONE_NUMBER
+  });
 
   if (!twilioClient) {
     return res.status(503).json({
@@ -42,6 +59,12 @@ router.post('/initiate', async (req, res) => {
   }
 
   try {
+    console.log('Creating call with:', {
+      to,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      patient
+    });
+
     const call = await twilioClient.calls.create({
       url: `${process.env.SERVER_URL || 'http://localhost:3001'}/voice?patientName=${encodeURIComponent(patient?.name || '')}&policyId=${encodeURIComponent(patient?.policyId || '')}`,
       to: to,
@@ -56,7 +79,8 @@ router.post('/initiate', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error initiating call:', error);
+    console.error('Error initiating call:', error.message);
+    console.error('Full error:', error);
     res.status(500).json({
       success: false,
       error: error.message

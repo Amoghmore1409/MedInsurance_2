@@ -10,7 +10,8 @@ export const PatientSelector = ({ selectedPatient, onPatientChange }) => {
       <select
         value={selectedPatient?.id || ''}
         onChange={(e) => {
-          const patient = patientsData.patients.find(p => p.id === e.target.value);
+          const patientId = parseInt(e.target.value);
+          const patient = patientsData.patients.find(p => p.id === patientId);
           onPatientChange(patient);
         }}
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"

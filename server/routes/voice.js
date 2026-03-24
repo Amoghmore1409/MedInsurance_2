@@ -1,5 +1,6 @@
 import express from 'express';
 import twilio from 'twilio';
+import bookingFlowController from '../services/bookingFlowController.js';
 
 const router = express.Router();
 const VoiceResponse = twilio.twiml.VoiceResponse;
@@ -10,13 +11,15 @@ router.post('/', (req, res) => {
 
   // Extract patient context from query parameters
   const patientName = req.query.patientName || req.body.patientName || '';
-  const policyId = req.query.policyId || req.body.policyId || '';
+  const userId = req.query.userId || req.body.userId || '1'; // Default to user 1 for demo
   const callSid = req.body.CallSid || '';
+
+  console.log(`[VOICE] Incoming call - callSid: ${callSid}, userId: ${userId}, name: ${patientName}`);
 
   // Greet the caller
   const greeting = patientName
-    ? `Welcome back ${patientName}! I am your MedInsure AI health insurance assistant.`
-    : 'Welcome to MedInsure AI. I am your health insurance assistant.';
+    ? `Welcome back ${patientName}!`
+    : 'Welcome to MedInsure AI.';
 
   twiml.say(
     {
@@ -26,10 +29,10 @@ router.post('/', (req, res) => {
     greeting
   );
 
-  // Gather speech input with patient context in params
+  // Gather speech input - let gather endpoint handle the booking flow
   const gatherParams = {
     input: 'speech',
-    action: `/voice/gather?patientName=${encodeURIComponent(patientName)}&policyId=${encodeURIComponent(policyId)}&callSid=${encodeURIComponent(callSid)}`,
+    action: `/voice/gather?userId=${encodeURIComponent(userId)}&patientName=${encodeURIComponent(patientName)}&callSid=${encodeURIComponent(callSid)}`,
     method: 'POST',
     speechTimeout: 'auto',
     language: 'en-IN',
@@ -43,11 +46,11 @@ router.post('/', (req, res) => {
       voice: 'Google.en-IN-Standard-A',
       language: 'en-IN'
     },
-    'Please tell me what you need help with.'
+    'Please tell me what you need. Say 1 for Home Visit appointment or 2 for Diagnostic Center appointment.'
   );
 
   // If no input, repeat
-  twiml.redirect(`/voice?patientName=${encodeURIComponent(patientName)}&policyId=${encodeURIComponent(policyId)}`);
+  twiml.redirect(`/voice?userId=${encodeURIComponent(userId)}&patientName=${encodeURIComponent(patientName)}`);
 
   res.type('text/xml');
   res.send(twiml.toString());

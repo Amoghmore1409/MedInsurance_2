@@ -6,12 +6,15 @@ import { ChatWindow } from './components/ChatWindow';
 import { ChatInput } from './components/ChatInput';
 import { VoiceInput } from './components/VoiceInput';
 import { CallMode } from './components/CallMode';
+import { AppointmentBookingChat } from './components/AppointmentBookingChat';
+import { AppointmentBookingVoice } from './components/AppointmentBookingVoice';
+import { AppointmentBookingCall } from './components/AppointmentBookingCall';
 import { sendMessage } from './services/groqService';
 import './App.css';
 
 function App() {
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [mode, setMode] = useState('chat'); // chat, voice, call
+  const [mode, setMode] = useState('appointment'); // appointment, chat, voice, call
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const speakFunctionRef = useRef(null);
@@ -85,8 +88,13 @@ function App() {
       return;
     }
 
+    // If appointment booking is selected, switch to appointment mode
+    if (actionId === 'appointment') {
+      setMode('appointment');
+      return;
+    }
+
     const actionMessages = {
-      appointment: 'I want to book an appointment',
       claims: 'Can you show me my claim status?',
       payments: 'I want to view my payment history',
       faq: 'I have a question about my insurance coverage'
@@ -141,7 +149,13 @@ function App() {
 
         {/* Main Chat/Voice/Call Area */}
         <div className="flex-1 bg-white rounded-lg shadow-lg flex flex-col overflow-y-auto">
-          {mode === 'call' ? (
+          {mode === 'appointment' ? (
+            <AppointmentBookingChat selectedPatient={selectedPatient} />
+          ) : mode === 'appointment-voice' ? (
+            <AppointmentBookingVoice selectedPatient={selectedPatient} onSpeakResponse={handleSpeakResponse} />
+          ) : mode === 'appointment-call' ? (
+            <AppointmentBookingCall selectedPatient={selectedPatient} onSpeakResponse={handleSpeakResponse} />
+          ) : mode === 'call' ? (
             <CallMode selectedPatient={selectedPatient} />
           ) : (
             <>
@@ -169,7 +183,7 @@ function App() {
           <p>
             MedInsure AI &copy; 2026 | Health Insurance Made Simple |
             <span className="ml-2">
-              {mode === 'chat' ? '💬 Chat Mode' : mode === 'voice' ? '🎤 Voice Mode' : '📞 Call Mode'}
+              {mode === 'appointment' ? '📅 Appointment Booking (Chat)' : mode === 'appointment-voice' ? '🎤 Appointment Booking (Voice)' : mode === 'appointment-call' ? '📞 Appointment Booking (Call)' : mode === 'chat' ? '💬 Chat Mode' : mode === 'voice' ? '🔊 Voice Mode' : '📞 Call Mode'}
             </span>
           </p>
         </div>
