@@ -76,7 +76,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error getting AI response:', error);
-      addMessage('assistant', 'I apologize, but I encountered an error. Please try again.');
+      addMessage('assistant', "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.");
     } finally {
       setIsTyping(false);
     }
@@ -121,11 +121,11 @@ function App() {
               <p className="text-blue-100 mt-1">Your Health Insurance Assistant</p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-sm text-blue-100">Powered by</div>
-                <div className="font-semibold">Groq AI + Twilio</div>
-              </div>
-            </div>
+  <div className="text-right">
+    <div className="text-sm text-blue-100">Powered by</div>
+    <div className="font-semibold text-yellow-300">Alphonsol Pvt Ltd</div>
+  </div>
+</div>
           </div>
         </div>
       </header>

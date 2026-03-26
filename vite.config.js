@@ -8,15 +8,15 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:3001',
         changeOrigin: true
       },
       '/voice': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:3001',
         changeOrigin: true
       },
       '/call': {
-        target: 'http://localhost:3003',
+        target: 'http://localhost:3001',
         changeOrigin: true
       }
     }

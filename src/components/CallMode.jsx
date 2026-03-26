@@ -5,8 +5,8 @@ export const CallMode = ({ selectedPatient }) => {
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState([]);
   const [twilioNumber, setTwilioNumber] = useState('');
-  const [userPhoneNumber, setUserPhoneNumber] = useState('+919326479441'); // Your number
-  const [phoneInput, setPhoneInput] = useState('+919326479441'); // Temporary input
+  const [userPhoneNumber, setUserPhoneNumber] = useState('+917620593008'); // Your number
+  const [phoneInput, setPhoneInput] = useState('+917620593008'); // Temporary input
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const timerRef = useRef(null);
 

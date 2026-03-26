@@ -10,12 +10,12 @@ const client = twilio(
 
 console.log('Testing Twilio voice call...');
 console.log('From:', process.env.TWILIO_PHONE_NUMBER);
-console.log('To: +919326479441');
+console.log('To: +917620593008');
 
 try {
   const call = await client.calls.create({
     url: 'http://localhost:3001/voice',
-    to: '+919326479441',
+    to: '+917620593008',
     from: process.env.TWILIO_PHONE_NUMBER
   });
   

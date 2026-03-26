@@ -111,6 +111,19 @@ class BookingFlowController {
     const input = userInput.toString().trim().toLowerCase();
     const userName = session.userName || 'friend';
 
+    // Handle out_of_scope responses
+    if (input === 'out_of_scope') {
+      const entryMessage = this.getEntryMessage(session);
+      return {
+        success: true,
+        message: "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.\n\n" + entryMessage.message,
+        options: entryMessage.options,
+        type: 'selection',
+        channelType: session.channelType,
+        currentStep: STEPS.ENTRY
+      };
+    }
+
     if (input === '1' || input === 'one' || input === 'home' || input === 'home visit') {
       // Home Visit selected
       sessionManager.updateSession(session.sessionId, {
@@ -131,8 +144,8 @@ class BookingFlowController {
       // Invalid input - ask again with acknowledgment
       return {
         success: true,
-        message: `Sorry, I didn't catch that. Please say 1 for Home Visit or 2 for Diagnostic Center.`,
-        options: ['1 - Home Visit', '2 - Diagnostic Center Visit'],
+        message: `Sorry, I didn't catch that. Please say "home visit" or "diagnostic center".`,
+        options: ['Home Visit', 'Diagnostic Center Visit'],
         type: 'selection',
         channelType: session.channelType,
         currentStep: STEPS.ENTRY
@@ -144,14 +157,27 @@ class BookingFlowController {
    * Handle center selection
    */
   handleCenterSelection(session, userInput) {
-    const input = parseInt(userInput.toString().trim());
+    const input = userInput.toString().trim();
+
+    // Handle out_of_scope responses
+    if (input === 'out_of_scope') {
+      const centerMessage = this.getCenterSelection(session);
+      return {
+        success: true,
+        message: "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.\n\n" + centerMessage.message,
+        options: centerMessage.options,
+        type: 'selection',
+        channelType: session.channelType,
+        currentStep: STEPS.CENTER_SELECTION
+      };
+    }
 
     if (isNaN(input) || input < 1 || input > 3) {
       // Invalid center number - help user
       return {
         success: true,
-        message: `Sorry, I didn't catch that. Please say 1, 2, or 3 for the center you prefer.`,
-        options: ['1 - HealthCare', '2 - City Lab', '3 - MedPlus'],
+        message: `Sorry, I didn't catch that. Please say "HealthCare", "City Lab", or "MedPlus" for the center you prefer.`,
+        options: ['HealthCare', 'City Lab', 'MedPlus'],
         type: 'selection',
         channelType: session.channelType,
         currentStep: STEPS.CENTER_SELECTION
@@ -185,6 +211,20 @@ class BookingFlowController {
   handleDistanceConfirmation(session, userInput) {
     const input = userInput.toString().trim().toLowerCase();
 
+    // Handle out_of_scope responses
+    if (input === 'out_of_scope') {
+      const center = getCenterById(session.selectedCenter);
+      const distanceMessage = this.getDistanceConfirmation(session, center);
+      return {
+        success: true,
+        message: "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.\n\n" + distanceMessage.message,
+        options: distanceMessage.options,
+        type: 'selection',
+        channelType: session.channelType,
+        currentStep: STEPS.DISTANCE_CONFIRMATION
+      };
+    }
+
     if (input === 'yes' || input === '1' || input === 'one' || input === 'okay' || input === 'ok') {
       // User wants to proceed
       const center = getCenterById(session.selectedCenter);
@@ -207,8 +247,8 @@ class BookingFlowController {
       const center = getCenterById(session.selectedCenter);
       return {
         success: true,
-        message: `Sorry, I didn't catch that. Do you want to continue with ${center.name} or choose a different center? Say yes or no.`,
-        options: ['1 - Yes', '2 - No'],
+        message: `Sorry, I didn't catch that. Do you want to continue with ${center.name} or choose a different center? Please say "yes" or "no".`,
+        options: ['Yes', 'No'],
         type: 'selection',
         channelType: session.channelType,
         currentStep: STEPS.DISTANCE_CONFIRMATION
@@ -220,23 +260,52 @@ class BookingFlowController {
    * Handle time selection
    */
   handleTimeSelection(session, userInput) {
-    const input = parseInt(userInput.toString().trim());
-    const availableSlots = getAvailableSlots(TIME_SLOTS, session.selectedFlow);
+    console.log(`[DEBUG] handleTimeSelection called with userInput: ${userInput}`);
+    
+    const input = userInput.toString().trim();
 
-    // Validate selection is a number
-    if (isNaN(input) || input < 1 || input > 3) {
-      // Invalid input
+    // Handle out_of_scope responses
+    if (input === 'out_of_scope') {
+      const timeMessage = this.getTimeSelectionMessage(session);
       return {
         success: true,
-        message: `I didn't quite catch that. Please say 1, 2, or 3 for your preferred time.`,
-        options: ['1 - 8:00 AM', '2 - 9:00 AM', '3 - 10:00 AM'],
+        message: "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.\n\n" + timeMessage.message,
+        options: timeMessage.options,
         type: 'selection',
         channelType: session.channelType,
         currentStep: STEPS.TIME_SELECTION
       };
     }
 
-    const selectedTime = TIME_SLOTS[input - 1];
+    // Handle invalid response from intent extractor
+    if (input === 'invalid') {
+      return {
+        success: true,
+        message: `I'm sorry, but that time is not available. Please choose from our available slots: "7 AM", "8 AM", or "9 AM".`,
+        options: ['7 AM', '8 AM', '9 AM'],
+        type: 'selection',
+        channelType: session.channelType,
+        currentStep: STEPS.TIME_SELECTION
+      };
+    }
+
+    const parsedInput = parseInt(input);
+    const availableSlots = getAvailableSlots(TIME_SLOTS, session.selectedFlow);
+
+    // Validate selection is a number
+    if (isNaN(parsedInput) || parsedInput < 1 || parsedInput > 3) {
+      // Invalid input
+      return {
+        success: true,
+        message: `I didn't quite catch that. Please say "7 AM", "8 AM", or "9 AM" for your preferred time.`,
+        options: ['7 AM', '8 AM', '9 AM'],
+        type: 'selection',
+        channelType: session.channelType,
+        currentStep: STEPS.TIME_SELECTION
+      };
+    }
+
+    const selectedTime = TIME_SLOTS[parsedInput - 1];
 
     // Check if slot is available
     if (!checkSlotAvailability(selectedTime, session.selectedFlow)) {
@@ -245,7 +314,7 @@ class BookingFlowController {
         currentStep: STEPS.TIME_SELECTION
       });
 
-      return this.getUnavailableSlotMessage(session);
+      return this.getUnavailableSlotMessage(session, selectedTime);
     }
 
     // Time is available - confirm booking
@@ -266,9 +335,9 @@ class BookingFlowController {
     const channelType = session.channelType;
     const userName = session.userName || 'valued customer';
 
-    let message = `Hi ${userName}, welcome to MedInsure!\n\nCongratulations on your new insurance policy. Now we need to schedule your mandatory medical check-up.\n\nWould you prefer a doctor to visit you at home, or would you like to visit one of our diagnostic centers?\n\n1. Home Visit - We'll send a medical professional to your home\n2. Diagnostic Center Visit - Visit one of our partner centers\n\nJust say 1 or 2.`;
+    let message = `Hi ${userName}, welcome to MedInsure!\n\nCongratulations on your new insurance policy. Now we need to schedule your mandatory medical check-up.\n\nWould you prefer a doctor to visit you at home, or would you like to visit one of our diagnostic centers?\n\nJust say "home visit" or "diagnostic center".`;
 
-    const options = ['1 - Home Visit', '2 - Diagnostic Center Visit'];
+    const options = ['Home Visit', 'Diagnostic Center Visit'];
 
     return {
       success: true,
@@ -284,12 +353,12 @@ class BookingFlowController {
    * Home visit time selection
    */
   getHomeVisitTimeSelection(session) {
-    const message = `Perfect! I've noted that you prefer a home visit. That's convenient - one of our medical professionals will visit you at your home.\n\nNow, what time works best for you? We have three slots available:\n1. 7 A M\n2. 8 A M\n3. 9 A M\n\nJust tell me your preferred time.`;
+    const message = `I've noted that you prefer a home visit. One of our medical professionals will visit you at your home.\n\nNow, what time works best for you? We have three slots available:\n\nJust say \"7 AM\", \"8 AM\", or \"9 AM\".`;
 
     return {
       success: true,
       message,
-      options: ['1 - 7:00 AM', '2 - 8:00 AM', '3 - 9:00 AM'],
+      options: ['7 AM', '8 AM', '9 AM'],
       type: 'selection',
       channelType: session.channelType,
       currentStep: STEPS.TIME_SELECTION
@@ -300,15 +369,13 @@ class BookingFlowController {
    * Diagnostic center selection
    */
   getCenterSelection(session) {
-    let message = `Excellent! Let me find the best diagnostic center near you.\n\nWe have 3 centers available:\n`;
+    let message = `Let me find the best diagnostic center near you.\n\nWe have 3 centers available:\n`;
     DIAGNOSTIC_CENTERS.forEach((center, index) => {
       message += `${index + 1}. ${center.name} - ${center.distance} away\n`;
     });
-    message += `\nWhich center would you prefer? Just say the number.`;
+    message += `\nWhich center would you prefer? Just say the center name like \"HealthCare\", \"City Lab\", or \"MedPlus\".`;
 
-    const options = DIAGNOSTIC_CENTERS.map(
-      (center, index) => `${index + 1} - ${center.name} (${center.distance})`
-    );
+    const options = ['HealthCare', 'City Lab', 'MedPlus'];
 
     return {
       success: true,
@@ -324,12 +391,12 @@ class BookingFlowController {
    * Distance confirmation for far centers
    */
   getDistanceConfirmation(session, center) {
-    const message = `I see you've selected ${center.name}. Just a heads up - it's about ${center.distance} from your location. Is that okay with you, or would you like to choose a closer center?\n\nSay yes to continue with this center, or no to see other options.`;
+    const message = `I see you've selected ${center.name}. Just a heads up - it's about ${center.distance} from your location. Is that okay with you, or would you like to choose a closer center?\n\nJust say \"yes\" to continue or \"no\" to choose another center.`;
 
     return {
       success: true,
       message,
-      options: ['1 - Yes, continue', '2 - No, choose another'],
+      options: ['Yes', 'No'],
       type: 'selection',
       channelType: session.channelType,
       currentStep: STEPS.DISTANCE_CONFIRMATION
@@ -341,12 +408,12 @@ class BookingFlowController {
    */
   getDiagnosticCenterTimeSelection(session, center) {
     const centerName = center.name;
-    const message = `Great! I've confirmed your appointment at ${centerName}.\n\nNow let's pick a time that works for you. We have these slots available:\n1. 7 A M\n2. 8 A M\n3. 9 A M\n\nWhich time is best for you?`;
+    const message = `I've confirmed your appointment at ${centerName}.\n\nNow let's pick a time that works for you. We have these slots available:\n\nJust say \"7 AM\", \"8 AM\", or \"9 AM\".`;
 
     return {
       success: true,
       message,
-      options: ['1 - 7:00 AM', '2 - 8:00 AM', '3 - 9:00 AM'],
+      options: ['7 AM', '8 AM', '9 AM'],
       type: 'selection',
       channelType: session.channelType,
       currentStep: STEPS.TIME_SELECTION
@@ -356,9 +423,11 @@ class BookingFlowController {
   /**
    * Unavailable slot message
    */
-  getUnavailableSlotMessage(session) {
+  getUnavailableSlotMessage(session, selectedTime) {
+    console.log(`[DEBUG] getUnavailableSlotMessage called with selectedTime: ${selectedTime}`);
     const availableSlots = getAvailableSlots(TIME_SLOTS, session.selectedFlow);
-    let message = `I'm sorry, but 7 AM is not available right now.`;
+    let message = `I'm sorry, but ${selectedTime} is not available right now.`;
+    console.log(`[DEBUG] Generated message: ${message}`);
 
     if (session.selectedFlow === FLOW_TYPES.HOME) {
       message += ` For home visits, we have these times available:\n`;
@@ -429,7 +498,7 @@ class BookingFlowController {
    * Confirmation message - Booking confirmed
    */
   getConfirmationMessage(session) {
-    let message = `Perfect! Your medical appointment is all set.`;
+    let message = `Your medical appointment is all set.`;
 
     if (session.selectedFlow === FLOW_TYPES.HOME) {
       message += ` A medical professional will visit you at your home tomorrow at ${session.selectedTime}.`;

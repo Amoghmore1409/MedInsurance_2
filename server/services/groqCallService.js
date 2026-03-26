@@ -260,7 +260,7 @@ Help with appointments, claims, payments, and questions.`
   } catch (error) {
     console.error('Groq API Error:', error);
     return {
-      message: 'I apologize, but I am having trouble processing your request. Please try again.',
+      message: "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure.",
       error: error.message
     };
   }

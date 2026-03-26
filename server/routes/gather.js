@@ -8,6 +8,9 @@ const VoiceResponse = twilio.twiml.VoiceResponse;
 // Session storage for voice calls (maps callSid to sessionId)
 const voiceSessionMap = new Map();
 
+// Track retry attempts for each call
+const retryAttempts = new Map();
+
 // Handle speech input from caller
 router.post('/', async (req, res) => {
   const twiml = new VoiceResponse();
@@ -22,21 +25,38 @@ router.post('/', async (req, res) => {
   console.log(`[GATHER] ${callSid} User (${patientName || 'Anonymous'}) said: ${userSpeech}`);
 
   if (!userSpeech || userSpeech.trim() === '') {
-    twiml.say(
-      {
-        voice: 'Google.en-IN-Standard-A',
-        language: 'en-IN'
-      },
-      'I didn\'t catch that. Could you please say it again?'
-    );
+    // Get current retry count
+    const currentAttempts = retryAttempts.get(callSid) || 0;
+    
+    if (currentAttempts >= 1) {
+      // Second attempt - hang up
+      twiml.say(
+        {
+          voice: 'Google.en-IN-Standard-A',
+          language: 'en-IN'
+        },
+        'I understand you may be busy. Thank you for calling MedInsure. Goodbye!'
+      );
+      twiml.hangup();
+    } else {
+      // First attempt - ask again
+      retryAttempts.set(callSid, currentAttempts + 1);
+      twiml.say(
+        {
+          voice: 'Google.en-IN-Standard-A',
+          language: 'en-IN'
+        },
+        'I didn\'t catch that. Could you please say it again?'
+      );
 
-    const gather = twiml.gather({
-      input: 'speech',
-      action: `/voice/gather?userId=${encodeURIComponent(userId)}&patientName=${encodeURIComponent(patientName)}&callSid=${encodeURIComponent(callSid)}`,
-      method: 'POST',
-      speechTimeout: 'auto',
-      language: 'en-IN'
-    });
+      const gather = twiml.gather({
+        input: 'speech',
+        action: `/voice/gather?userId=${encodeURIComponent(userId)}&patientName=${encodeURIComponent(patientName)}&callSid=${encodeURIComponent(callSid)}`,
+        method: 'POST',
+        speechTimeout: 'auto',
+        language: 'en-IN'
+      });
+    }
 
     res.type('text/xml');
     res.send(twiml.toString());
@@ -57,7 +77,7 @@ router.post('/', async (req, res) => {
             voice: 'Google.en-IN-Standard-A',
             language: 'en-IN'
           },
-          'I apologize, but we encountered an error. Please try again later.'
+          "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure."
         );
         twiml.hangup();
         res.type('text/xml');
@@ -66,12 +86,16 @@ router.post('/', async (req, res) => {
       }
       sessionId = startResult.sessionId;
       voiceSessionMap.set(callSid, sessionId);
+      // Reset retry counter for new session
+      retryAttempts.delete(callSid);
 
       // Now process the user's initial input against the new session
       console.log(`[GATHER] Processing initial user input: "${userSpeech}"`);
       response = await bookingFlowController.handleUserInput(sessionId, userSpeech);
     } else {
       // Handle user input in existing session
+      // Reset retry counter when user provides speech
+      retryAttempts.delete(callSid);
       console.log(`[GATHER] Processing input for existing session: "${userSpeech}"`);
       response = await bookingFlowController.handleUserInput(sessionId, userSpeech);
     }
@@ -85,7 +109,6 @@ router.post('/', async (req, res) => {
         'Sorry, I didn\'t understand that. Let me ask again. '
       );
 
-      // Repeat the appropriate prompt
       if (response.options && response.options.length > 0) {
         const gather = twiml.gather({
           input: 'speech',
@@ -105,14 +128,12 @@ router.post('/', async (req, res) => {
         );
       }
     } else {
-      // Acknowledge user choice and speak response
       let acknowledgment = '';
 
-      // Add acknowledgment based on the response
       if (response.currentStep === 'time_selection' && !response.message.includes('didn\'t')) {
-        acknowledgment = 'Great choice! ';
+        acknowledgment = '';
       } else if (response.currentStep === 'center_selection') {
-        acknowledgment = 'Perfect! ';
+        acknowledgment = '';
       } else if (response.currentStep === 'distance_confirmation') {
         acknowledgment = '';
       }
@@ -125,7 +146,6 @@ router.post('/', async (req, res) => {
         acknowledgment + response.message
       );
 
-      // If confirmation, end the call
       if (response.type === 'confirmation') {
         twiml.say(
           {
@@ -142,7 +162,6 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // Continue conversation
     if (response.options && response.options.length > 0) {
       const gather = twiml.gather({
         input: 'speech',
@@ -180,7 +199,7 @@ router.post('/', async (req, res) => {
         voice: 'Google.en-IN-Standard-A',
         language: 'en-IN'
       },
-      'I apologize. We encountered an error. Please try again or contact customer support.'
+      "I'm sorry, I can only help you with booking your medical appointment. I'm here to assist you with scheduling your mandatory medical check-up through MedInsure."
     );
 
     twiml.hangup();

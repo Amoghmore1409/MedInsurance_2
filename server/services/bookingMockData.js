@@ -54,13 +54,10 @@ export const STEPS = {
 
 /**
  * Mock availability checker
- * Rule: 7:00 AM is NOT available, all others are available
+ * Rule: All time slots are available
  */
 export function checkSlotAvailability(time, flowType) {
-  if (time === '7:00 AM') {
-    return false; // Not available
-  }
-  return true; // Available
+  return true; // All slots are now available
 }
 
 /**
